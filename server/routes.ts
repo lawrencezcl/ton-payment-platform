@@ -11,6 +11,7 @@ import {
   insertMerchantPaymentSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import { validateTelegramInitData, parseTelegramUser } from "./telegram";
 
 // Mock TON price (in real app, fetch from API)
 const TON_PRICE_USD = 5.2;
@@ -62,6 +63,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       eur: TON_PRICE_USD * 0.92,
       timestamp: new Date().toISOString()
     });
+  });
+
+  // Telegram auth endpoint
+  app.post("/api/auth/telegram", async (req: Request, res: Response) => {
+    try {
+      const { initData } = req.body;
+      
+      if (!initData) {
+        return res.status(400).json({ error: "Missing initData" });
+      }
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      
+      if (!botToken) {
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(500).json({ error: "TELEGRAM_BOT_TOKEN not configured" });
+        }
+        console.warn("TELEGRAM_BOT_TOKEN not set - allowing in development mode only");
+        const user = parseTelegramUser(initData);
+        return res.json({ valid: true, user });
+      }
+
+      // Validate with 5-minute window to prevent replay attacks
+      const isValid = validateTelegramInitData(initData, botToken, 300);
+      
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid or expired Telegram data" });
+      }
+
+      const user = parseTelegramUser(initData);
+      res.json({ valid: true, user });
+    } catch (error: any) {
+      console.error("Telegram auth error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Wallet endpoints
