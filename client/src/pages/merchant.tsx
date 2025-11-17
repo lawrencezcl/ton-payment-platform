@@ -64,7 +64,7 @@ export default function Merchant() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-1 sm:px-0">
       <div>
-        <h1 className="text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
+        <h1 className="text-2xl sm:text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
           Merchant Payments
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -121,7 +121,7 @@ export default function Merchant() {
 
             <Button 
               type="submit" 
-              className="w-full gap-2"
+              className="w-full gap-2 min-h-[48px]"
               disabled={createMerchantPayment.isPending}
               data-testid="button-generate-link"
             >
@@ -147,7 +147,7 @@ export default function Merchant() {
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 min-h-[44px]"
                 onClick={copyLink}
                 data-testid="button-copy-payment-link"
               >
@@ -156,7 +156,7 @@ export default function Merchant() {
               </Button>
               <Button 
                 variant="outline" 
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 min-h-[44px]"
                 onClick={() => setShowQR(true)}
                 data-testid="button-show-payment-qr"
               >
@@ -169,7 +169,7 @@ export default function Merchant() {
       )}
 
       <Dialog open={showQR} onOpenChange={setShowQR}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Payment QR Code</DialogTitle>
             <DialogDescription>
@@ -177,10 +177,10 @@ export default function Merchant() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-4 rounded-md">
+            <div className="bg-white p-3 sm:p-4 rounded-md">
               <QRCodeSVG
                 value={paymentLink}
-                size={256}
+                size={window.innerWidth < 400 ? 200 : 256}
                 level="H"
               />
             </div>

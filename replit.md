@@ -12,6 +12,16 @@ A comprehensive Web3 payment platform built for the TON blockchain ecosystem, de
 ## Recent Changes
 
 **November 17, 2025:**
+- **Mobile-First Responsive Design Enhancements**:
+  - Responsive page headers: Flexible layouts (flex-col sm:flex-row) that stack vertically on mobile
+  - Responsive typography: Smaller text on mobile (text-2xl sm:text-3xl for headings)
+  - Optimized touch targets: Minimum 60px height for all action buttons (min-h-[60px])
+  - Mobile-friendly dialogs: Max height of 90vh with overflow scrolling, responsive widths (sm:max-w-[500px])
+  - Responsive grids: All grids use grid-cols-1 sm:grid-cols-2 lg:grid-cols-X pattern
+  - Adaptive spacing: Reduced padding on mobile (p-3 sm:p-4, gap-4 sm:gap-6)
+  - Full-width mobile buttons: Action buttons expand to full width on mobile (w-full sm:w-auto)
+  - Responsive QR codes: Adjust size based on screen width (200px for <400px screens, 256px otherwise)
+  - Viewport optimization: Meta tag with width=device-width, initial-scale=1.0, maximum-scale=1
 - **TON Connect Integration**: Replaced mock wallet system with real TON Connect SDK
   - Installed @tonconnect/ui-react for wallet connection protocol
   - Created tonconnect-manifest.json for app metadata and wallet discovery

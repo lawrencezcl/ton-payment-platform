@@ -118,7 +118,7 @@ export default function Invoices() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto" data-testid="button-create-invoice">
+            <Button className="gap-2 w-full sm:w-auto min-h-[48px]" data-testid="button-create-invoice">
               <Plus className="h-4 w-4" />
               Create Invoice
             </Button>
@@ -193,7 +193,7 @@ export default function Invoices() {
                   Specify a payer to restrict who can pay this invoice
                 </p>
               </div>
-              <Button type="submit" className="w-full" data-testid="button-submit-invoice">
+              <Button type="submit" className="w-full min-h-[48px]" data-testid="button-submit-invoice">
                 Create Invoice
               </Button>
             </form>
@@ -226,7 +226,7 @@ export default function Invoices() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {invoices.map((invoice) => (
             <Card key={invoice.id} className="hover-elevate" data-testid={`card-invoice-${invoice.id}`}>
               <CardHeader>
@@ -253,8 +253,7 @@ export default function Invoices() {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 min-h-[44px]"
                     onClick={() => setShowQR(invoice.id)}
                     data-testid={`button-show-qr-${invoice.id}`}
                   >
@@ -263,8 +262,7 @@ export default function Invoices() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 min-h-[44px]"
                     onClick={() => copyInvoiceLink(invoice.id)}
                     data-testid={`button-copy-link-${invoice.id}`}
                   >
@@ -279,7 +277,7 @@ export default function Invoices() {
       )}
 
       <Dialog open={!!showQR} onOpenChange={() => setShowQR(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Payment QR Code</DialogTitle>
             <DialogDescription>
@@ -287,10 +285,10 @@ export default function Invoices() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-4 rounded-md">
+            <div className="bg-white p-3 sm:p-4 rounded-md">
               <QRCodeSVG
                 value={`https://tonpay.app/invoice/${showQR}`}
-                size={256}
+                size={window.innerWidth < 400 ? 200 : 256}
                 level="H"
               />
             </div>

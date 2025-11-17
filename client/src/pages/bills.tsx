@@ -66,7 +66,7 @@ function BillCard({ bill, walletAddress }: { bill: Bill; walletAddress: string }
             <span className="font-mono font-semibold text-primary">{share} TON</span>
           )}
         </div>
-        <Button className="w-full gap-2" variant="outline" data-testid={`button-settle-${bill.id}`}>
+        <Button className="w-full gap-2 min-h-[48px]" variant="outline" data-testid={`button-settle-${bill.id}`}>
           <CheckCircle className="h-4 w-4" />
           Settle Up
         </Button>
@@ -166,7 +166,7 @@ export default function Bills() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto" data-testid="button-create-bill">
+            <Button className="gap-2 w-full sm:w-auto min-h-[48px]" data-testid="button-create-bill">
               <Plus className="h-4 w-4" />
               Create Bill
             </Button>
@@ -253,7 +253,7 @@ export default function Bills() {
                   Scan QR codes to add participants. Each person pays {participants.length > 0 ? `${(parseFloat(amount || "0") / (participants.length + 1)).toFixed(2)} TON` : "an equal share"}.
                 </p>
               </div>
-              <Button type="submit" className="w-full" data-testid="button-submit-bill">
+              <Button type="submit" className="w-full min-h-[48px]" data-testid="button-submit-bill">
                 Create Bill
               </Button>
             </form>

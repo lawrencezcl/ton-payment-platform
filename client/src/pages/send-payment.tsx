@@ -151,7 +151,7 @@ export default function SendPayment() {
 
             <Button 
               type="submit" 
-              className="w-full gap-2" 
+              className="w-full gap-2 min-h-[48px]" 
               disabled={createTransaction.isPending || !amount || !address}
               data-testid="button-send-payment"
             >
