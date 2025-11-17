@@ -58,11 +58,25 @@ export const invoices = pgTable("invoices", {
 export const merchantPayments = pgTable("merchant_payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   merchantName: text("merchant_name").notNull(),
+  merchantAddress: text("merchant_address").notNull(),
   amount: decimal("amount", { precision: 18, scale: 9 }).notNull(),
   description: text("description"),
   paymentLink: text("payment_link").notNull(),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const gifts = pgTable("gifts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  amount: decimal("amount", { precision: 18, scale: 9 }).notNull(),
+  senderAddress: text("sender_address").notNull(),
+  recipientAddress: text("recipient_address"),
+  secretHash: text("secret_hash").notNull(),
+  description: text("description"),
+  isClaimed: boolean("is_claimed").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  claimedAt: timestamp("claimed_at"),
   expiresAt: timestamp("expires_at"),
 });
 
@@ -126,6 +140,15 @@ export const insertMerchantPaymentSchema = createInsertSchema(merchantPayments).
   amount: z.string().regex(/^\d+(\.\d+)?$/),
 });
 
+export const insertGiftSchema = createInsertSchema(gifts).omit({
+  id: true,
+  createdAt: true,
+  isClaimed: true,
+  claimedAt: true,
+}).extend({
+  amount: z.string().regex(/^\d+(\.\d+)?$/),
+});
+
 // Types
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type Wallet = typeof wallets.$inferSelect;
@@ -145,3 +168,6 @@ export type Invoice = typeof invoices.$inferSelect;
 
 export type InsertMerchantPayment = z.infer<typeof insertMerchantPaymentSchema>;
 export type MerchantPayment = typeof merchantPayments.$inferSelect;
+
+export type InsertGift = z.infer<typeof insertGiftSchema>;
+export type Gift = typeof gifts.$inferSelect;

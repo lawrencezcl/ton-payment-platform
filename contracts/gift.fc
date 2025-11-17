@@ -1,0 +1,187 @@
+;; Gift Contract for TON Payment Platform
+;; Handles time-locked or secret-based crypto gifts
+
+#include "imports/stdlib.fc";
+
+const STATUS_ACTIVE = 0;
+const STATUS_CLAIMED = 1;
+const STATUS_EXPIRED = 2;
+const STATUS_REFUNDED = 3;
+
+;; Storage structure
+;; sender_address: uint256 - who sent the gift
+;; recipient_address: uint256 - optional recipient (0 if open)
+;; secret_hash: uint256 - hash of the secret for claiming
+;; amount: coins - gift amount
+;; status: uint8 - current status
+;; created_at: uint32 - creation timestamp
+;; expires_at: uint32 - expiration timestamp
+;; claimed_at: uint32 - when claimed (0 if not claimed)
+
+() save_data(slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) impure {
+    set_data(
+        begin_cell()
+            .store_slice(sender_address)
+            .store_slice(recipient_address)
+            .store_uint(secret_hash, 256)
+            .store_coins(amount)
+            .store_uint(status, 8)
+            .store_uint(created_at, 32)
+            .store_uint(expires_at, 32)
+            .store_uint(claimed_at, 32)
+        end_cell()
+    );
+}
+
+() load_data() returns (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) {
+    slice ds = get_data().begin_parse();
+    sender_address = ds~load_msg_addr();
+    recipient_address = ds~load_msg_addr();
+    secret_hash = ds~load_uint(256);
+    amount = ds~load_coins();
+    status = ds~load_uint(8);
+    created_at = ds~load_uint(32);
+    expires_at = ds~load_uint(32);
+    claimed_at = ds~load_uint(32);
+    return (sender_address, recipient_address, secret_hash, amount, status, created_at, expires_at, claimed_at);
+}
+
+;; Helper function to calculate hash
+int calculate_hash(slice secret) returns (int) {
+    ;; Simplified hash calculation - in real implementation use proper hashing
+    return secret.preload_uint(256);
+}
+
+;; Main contract function - handles claim messages
+() recv_internal(int msg_value, cell in_msg_full, slice in_msg) impure {
+    ;; Parse message
+    slice cs = in_msg;
+    int op = cs~load_uint(32);
+    int query_id = cs~load_uint(64);
+    
+    ;; Load contract data
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    
+    ;; Check if gift is still active
+    throw_if(3001, status != STATUS_ACTIVE);
+    
+    int now = now();
+    
+    ;; Check expiration
+    if (now > expires_at) {
+        ;; Mark as expired and save
+        status = STATUS_EXPIRED;
+        save_data(sender_address, recipient_address, secret_hash, amount, status, created_at, expires_at, claimed_at);
+        throw(3002); ;; Gift expired
+    }
+    
+    ;; Handle different operations
+    if (op == 0x12345678) { ;; CLAIM operation
+        ;; Get secret from message
+        slice secret = cs~load_bits(256);
+        
+        ;; Verify secret hash
+        int provided_hash = calculate_hash(secret);
+        throw_if(3003, provided_hash != secret_hash);
+        
+        ;; Check recipient if specified
+        if (recipient_address.preload_uint(2) != 0) { ;; Check if recipient_address is not null
+            slice claimant_address = sender();
+            throw_if(3004, ~ equal_slices_bits(claimant_address, recipient_address));
+        }
+        
+        ;; Process claim
+        status = STATUS_CLAIMED;
+        claimed_at = now;
+        
+        ;; Send gift amount to claimant
+        slice claimant_address = sender();
+        var msg = begin_cell()
+            .store_uint(0x18, 6) ;; bounce flag
+            .store_slice(claimant_address)
+            .store_coins(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(op, 32)
+            .store_uint(query_id, 64);
+        
+        send_raw_message(msg.end_cell(), 1); ;; mode 1: carry all remaining balance
+        
+        ;; Save updated data
+        save_data(sender_address, recipient_address, secret_hash, amount, status, created_at, expires_at, claimed_at);
+        
+    } else if (op == 0x87654321) { ;; REFUND operation (only sender can refund after expiry)
+        ;; Check if expired
+        throw_if(3005, now <= expires_at);
+        
+        ;; Check if sender is the original sender
+        slice refund_requester = sender();
+        throw_if(3006, ~ equal_slices_bits(refund_requester, sender_address));
+        
+        ;; Check if already refunded
+        throw_if(3007, status == STATUS_REFUNDED);
+        
+        ;; Process refund
+        status = STATUS_REFUNDED;
+        
+        ;; Send refund to sender
+        var msg = begin_cell()
+            .store_uint(0x18, 6) ;; bounce flag
+            .store_slice(sender_address)
+            .store_coins(amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(op, 32)
+            .store_uint(query_id, 64);
+        
+        send_raw_message(msg.end_cell(), 1); ;; mode 1: carry all remaining balance
+        
+        ;; Save updated data
+        save_data(sender_address, recipient_address, secret_hash, amount, status, created_at, expires_at, claimed_at);
+    }
+}
+
+;; Getter functions
+int get_status() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return status;
+}
+
+int get_amount() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return amount;
+}
+
+slice get_sender() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return sender_address;
+}
+
+slice get_recipient() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return recipient_address;
+}
+
+int get_secret_hash() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return secret_hash;
+}
+
+int get_created_at() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return created_at;
+}
+
+int get_expires_at() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return expires_at;
+}
+
+int get_claimed_at() method_id {
+    (slice sender_address, slice recipient_address, int secret_hash, int amount, int status, int created_at, int expires_at, int claimed_at) = load_data();
+    return claimed_at;
+}
+
+;; Initialize contract
+() init(slice sender_address, slice recipient_address, int secret_hash, int amount, int expires_at) impure {
+    int now = now();
+    save_data(sender_address, recipient_address, secret_hash, amount, STATUS_ACTIVE, now, expires_at, 0);
+}

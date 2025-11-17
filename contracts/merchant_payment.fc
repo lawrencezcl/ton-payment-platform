@@ -1,0 +1,147 @@
+;; Merchant Payment Contract for TON Payment Platform
+;; Handles merchant payment links and order processing
+
+#include "imports/stdlib.fc";
+
+const STATUS_PENDING = 0;
+const STATUS_PAID = 1;
+const STATUS_EXPIRED = 2;
+const STATUS_CANCELLED = 3;
+
+;; Storage structure
+;; merchant_address: uint256 - merchant wallet address
+;; merchant_name: cell - merchant name/business name
+;; order_id: uint256 - unique order identifier
+;; amount: coins - payment amount
+;; status: uint8 - current status
+;; created_at: uint32 - creation timestamp
+;; expires_at: uint32 - expiration timestamp
+;; description: cell - order description
+;; payment_link: cell - original payment link reference
+
+() save_data(slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) impure {
+    set_data(
+        begin_cell()
+            .store_slice(merchant_address)
+            .store_ref(merchant_name)
+            .store_uint(order_id, 256)
+            .store_coins(amount)
+            .store_uint(status, 8)
+            .store_uint(created_at, 32)
+            .store_uint(expires_at, 32)
+            .store_ref(description)
+            .store_ref(payment_link)
+        end_cell()
+    );
+}
+
+() load_data() returns (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) {
+    slice ds = get_data().begin_parse();
+    merchant_address = ds~load_msg_addr();
+    merchant_name = ds~load_ref();
+    order_id = ds~load_uint(256);
+    amount = ds~load_coins();
+    status = ds~load_uint(8);
+    created_at = ds~load_uint(32);
+    expires_at = ds~load_uint(32);
+    description = ds~load_ref();
+    payment_link = ds~load_ref();
+    return (merchant_address, merchant_name, order_id, amount, status, created_at, expires_at, description, payment_link);
+}
+
+;; Main contract function
+() recv_internal(int msg_value, cell in_msg_full, slice in_msg) impure {
+    ;; Parse message
+    slice cs = in_msg;
+    int op = cs~load_uint(32);
+    int query_id = cs~load_uint(64);
+    
+    ;; Load contract data
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    
+    ;; Check if payment is still pending
+    throw_if(4001, status != STATUS_PENDING);
+    
+    ;; Check expiration if set
+    if (expires_at != 0) {
+        int now = now();
+        if (now > expires_at) {
+            ;; Mark as expired and save
+            status = STATUS_EXPIRED;
+            save_data(merchant_address, merchant_name, order_id, amount, status, created_at, expires_at, description, payment_link);
+            throw(4002); ;; Payment expired
+        }
+    }
+    
+    ;; Check payment amount
+    throw_if(4003, msg_value < amount);
+    
+    ;; Process payment
+    status = STATUS_PAID;
+    
+    ;; Forward payment to merchant
+    var msg = begin_cell()
+        .store_uint(0x18, 6) ;; bounce flag
+        .store_slice(merchant_address)
+        .store_coins(msg_value)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_uint(op, 32)
+        .store_uint(query_id, 64);
+    
+    send_raw_message(msg.end_cell(), 1); ;; mode 1: carry all remaining balance
+    
+    ;; Save updated status
+    save_data(merchant_address, merchant_name, order_id, amount, status, created_at, expires_at, description, payment_link);
+}
+
+;; Getter functions
+int get_status() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return status;
+}
+
+int get_amount() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return amount;
+}
+
+slice get_merchant_address() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return merchant_address;
+}
+
+cell get_merchant_name() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return merchant_name;
+}
+
+int get_order_id() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return order_id;
+}
+
+int get_created_at() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return created_at;
+}
+
+int get_expires_at() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return expires_at;
+}
+
+cell get_description() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return description;
+}
+
+cell get_payment_link() method_id {
+    (slice merchant_address, cell merchant_name, int order_id, int amount, int status, int created_at, int expires_at, cell description, cell payment_link) = load_data();
+    return payment_link;
+}
+
+;; Initialize contract
+() init(slice merchant_address, cell merchant_name, int order_id, int amount, int expires_at, cell description, cell payment_link) impure {
+    int now = now();
+    save_data(merchant_address, merchant_name, order_id, amount, STATUS_PENDING, now, expires_at, description, payment_link);
+}

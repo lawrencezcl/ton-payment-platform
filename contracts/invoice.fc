@@ -1,0 +1,137 @@
+;; Invoice Contract for TON Payment Platform
+;; Handles payment requests with optional expiration and payer restrictions
+
+#include "imports/stdlib.fc";
+
+const STATUS_PENDING = 0;
+const STATUS_PAID = 1;
+const STATUS_EXPIRED = 2;
+const STATUS_CANCELLED = 3;
+
+;; Storage structure
+;; creator_address: uint256 - who created the invoice
+;; payer_address: uint256 - optional specific payer (0 if open)
+;; amount: coins - requested amount
+;; status: uint8 - current status
+;; created_at: uint32 - creation timestamp
+;; expires_at: uint32 - optional expiration (0 if no expiry)
+;; description: cell - optional description text
+
+() save_data(slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) impure {
+    set_data(
+        begin_cell()
+            .store_slice(creator_address)
+            .store_slice(payer_address)
+            .store_coins(amount)
+            .store_uint(status, 8)
+            .store_uint(created_at, 32)
+            .store_uint(expires_at, 32)
+            .store_ref(description)
+        end_cell()
+    );
+}
+
+() load_data() returns (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) {
+    slice ds = get_data().begin_parse();
+    creator_address = ds~load_msg_addr();
+    payer_address = ds~load_msg_addr();
+    amount = ds~load_coins();
+    status = ds~load_uint(8);
+    created_at = ds~load_uint(32);
+    expires_at = ds~load_uint(32);
+    description = ds~load_ref();
+    return (creator_address, payer_address, amount, status, created_at, expires_at, description);
+}
+
+;; Main contract function
+() recv_internal(int msg_value, cell in_msg_full, slice in_msg) impure {
+    ;; Parse message
+    slice cs = in_msg;
+    int op = cs~load_uint(32);
+    int query_id = cs~load_uint(64);
+    
+    ;; Load contract data
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    
+    ;; Check if invoice is still pending
+    throw_if(1001, status != STATUS_PENDING);
+    
+    ;; Check expiration if set
+    if (expires_at != 0) {
+        int now = now();
+        if (now > expires_at) {
+            ;; Mark as expired and save
+            status = STATUS_EXPIRED;
+            save_data(creator_address, payer_address, amount, status, created_at, expires_at, description);
+            throw(1002); ;; Invoice expired
+        }
+    }
+    
+    ;; Check if payer is restricted
+    if (payer_address.preload_uint(2) != 0) { ;; Check if payer_address is not null
+        slice sender_address = sender();
+        throw_if(1003, ~ equal_slices_bits(sender_address, payer_address));
+    }
+    
+    ;; Check payment amount
+    throw_if(1004, msg_value < amount);
+    
+    ;; Process payment
+    status = STATUS_PAID;
+    
+    ;; Forward payment to creator
+    var msg = begin_cell()
+        .store_uint(0x18, 6) ;; bounce flag
+        .store_slice(creator_address)
+        .store_coins(msg_value)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_uint(op, 32)
+        .store_uint(query_id, 64);
+    
+    send_raw_message(msg.end_cell(), 1); ;; mode 1: carry all remaining balance
+    
+    ;; Save updated status
+    save_data(creator_address, payer_address, amount, status, created_at, expires_at, description);
+}
+
+;; Getter functions
+int get_status() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return status;
+}
+
+int get_amount() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return amount;
+}
+
+slice get_creator() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return creator_address;
+}
+
+slice get_payer() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return payer_address;
+}
+
+int get_created_at() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return created_at;
+}
+
+int get_expires_at() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return expires_at;
+}
+
+cell get_description() method_id {
+    (slice creator_address, slice payer_address, int amount, int status, int created_at, int expires_at, cell description) = load_data();
+    return description;
+}
+
+;; Initialize contract
+() init(slice creator_address, slice payer_address, int amount, int expires_at, cell description) impure {
+    int now = now();
+    save_data(creator_address, payer_address, amount, STATUS_PENDING, now, expires_at, description);
+}
