@@ -9,6 +9,22 @@ A comprehensive Web3 payment platform built for the TON blockchain ecosystem, de
 1. **Wallet Balance Display**: Header wallet badge may show "NaN TON" on first load due to async timing. Balance updates correctly in database and dashboard stats. Refresh page or wait for polling cycle to see correct balance.
 2. **Balance Polling**: Uses 3-second polling interval for real-time updates instead of WebSocket push notifications.
 
+## Recent Changes
+
+**November 17, 2025:**
+- Implemented Telegram Mini App integration using @twa-dev/sdk
+- Added TelegramProvider context wrapper for app-wide Telegram WebApp access
+- Updated wallet connector to display Telegram user profile (avatar, name, username)
+- Telegram user info shows in header alongside wallet balance
+- App expands to full height in Telegram WebApp with closing confirmation
+
+**Previous:**
+- PostgreSQL database with DbStorage using Drizzle ORM
+- Wallet balance management with React Query (fixes NaN display issues)
+- Bill splitting financial logic with automatic balance updates
+- Invoice payment flow with balance tracking
+- P2P payment system with confirmed transactions
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

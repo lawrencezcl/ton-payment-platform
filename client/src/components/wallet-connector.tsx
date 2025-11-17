@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Wallet, Copy, LogOut, CheckCircle } from "lucide-react";
+import { Wallet, Copy, LogOut, CheckCircle, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useWallet } from "@/lib/api-hooks";
+import { useTelegram } from "@/lib/telegram";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -21,6 +25,7 @@ export function WalletConnector({ onConnect }: WalletConnectorProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState("");
   const { toast } = useToast();
+  const { user: tgUser, isReady: tgReady } = useTelegram();
   
   // Use react-query for wallet data
   const { data: walletData, refetch } = useWallet(address);
@@ -97,28 +102,63 @@ export function WalletConnector({ onConnect }: WalletConnectorProps) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2" data-testid="button-wallet-menu">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <div className="flex flex-col items-start">
-              <span className="font-mono text-xs">{address}</span>
-              <span className="text-xs text-muted-foreground">{balance} TON</span>
-            </div>
+    <div className="flex items-center gap-3">
+      {tgUser && (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={tgUser.photoUrl} alt={tgUser.firstName} />
+            <AvatarFallback>
+              <User className="h-4 w-4" />
+            </AvatarFallback>
+          </Avatar>
+          <div className="hidden sm:flex flex-col items-start">
+            <span className="text-sm font-medium">
+              {tgUser.firstName} {tgUser.lastName || ""}
+            </span>
+            {tgUser.username && (
+              <span className="text-xs text-muted-foreground">@{tgUser.username}</span>
+            )}
           </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={copyAddress} data-testid="button-copy-address">
-          <Copy className="mr-2 h-4 w-4" />
-          Copy Address
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleDisconnect} data-testid="button-disconnect">
-          <LogOut className="mr-2 h-4 w-4" />
-          Disconnect
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="gap-2" data-testid="button-wallet-menu">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <div className="flex flex-col items-start">
+                <span className="font-mono text-xs">{address.slice(0, 8)}...{address.slice(-6)}</span>
+                <span className="text-xs text-muted-foreground">{balance} TON</span>
+              </div>
+            </div>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {tgUser && (
+            <>
+              <DropdownMenuLabel>
+                <div className="flex flex-col">
+                  <span>
+                    {tgUser.firstName} {tgUser.lastName || ""}
+                  </span>
+                  {tgUser.username && (
+                    <span className="text-xs font-normal text-muted-foreground">@{tgUser.username}</span>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onClick={copyAddress} data-testid="button-copy-address">
+            <Copy className="mr-2 h-4 w-4" />
+            Copy Address
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDisconnect} data-testid="button-disconnect">
+            <LogOut className="mr-2 h-4 w-4" />
+            Disconnect
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
