@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "./queryClient";
-import type { Transaction, Bill, Invoice, Wallet } from "@shared/schema";
+import type { Transaction, Bill, Invoice, Wallet, BillParticipant } from "@shared/schema";
 
 // TON Price
 export function useTonPrice() {
@@ -76,6 +76,20 @@ export function useCreateBill() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bills'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bill-participants'] });
+    },
+  });
+}
+
+export function useBillParticipants(billId?: string) {
+  return useQuery<BillParticipant[]>({
+    queryKey: ['/api/bill-participants', billId],
+    enabled: !!billId,
+    queryFn: async () => {
+      if (!billId) return [];
+      const response = await fetch(`/api/bill-participants/bill/${billId}`);
+      if (!response.ok) throw new Error('Failed to fetch bill participants');
+      return response.json();
     },
   });
 }

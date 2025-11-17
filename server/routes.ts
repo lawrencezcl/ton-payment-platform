@@ -6,6 +6,7 @@ import {
   insertWalletSchema,
   insertTransactionSchema,
   insertBillSchema,
+  insertBillWithParticipantsSchema,
   insertBillParticipantSchema,
   insertInvoiceSchema,
   insertMerchantPaymentSchema,
@@ -215,8 +216,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bill endpoints
   app.post("/api/bills", async (req: Request, res: Response) => {
     try {
-      const data = insertBillSchema.parse(req.body);
-      const bill = await storage.createBill(data);
+      const data = insertBillWithParticipantsSchema.parse(req.body);
+      const { participants, ...billData } = data;
+      
+      const bill = await storage.createBill(billData);
+      
+      // Create participant records
+      if (participants && participants.length > 0) {
+        const totalParticipants = participants.length + 1; // +1 for creator
+        const shareAmount = (parseFloat(bill.totalAmount) / totalParticipants).toString();
+        
+        // Create participant record for each address
+        for (const address of participants) {
+          await storage.createBillParticipant({
+            billId: bill.id,
+            address,
+            share: shareAmount,
+          });
+        }
+        
+        // Create participant record for creator
+        await storage.createBillParticipant({
+          billId: bill.id,
+          address: bill.createdBy,
+          share: shareAmount,
+        });
+      }
       
       broadcast('bill:created', bill);
       

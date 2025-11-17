@@ -87,6 +87,10 @@ export const insertBillSchema = createInsertSchema(bills).omit({
   totalAmount: z.string().regex(/^\d+(\.\d+)?$/),
 });
 
+export const insertBillWithParticipantsSchema = insertBillSchema.extend({
+  participants: z.array(z.string()).optional(),
+});
+
 export const insertBillParticipantSchema = createInsertSchema(billParticipants).omit({
   id: true,
   paid: true,
@@ -120,6 +124,7 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
 export type InsertBill = z.infer<typeof insertBillSchema>;
+export type InsertBillWithParticipants = z.infer<typeof insertBillWithParticipantsSchema>;
 export type Bill = typeof bills.$inferSelect;
 
 export type InsertBillParticipant = z.infer<typeof insertBillParticipantSchema>;

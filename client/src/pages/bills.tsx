@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Split, Users, CheckCircle, Loader2, QrCode, X } from "lucide-react";
-import { useBills, useCreateBill } from "@/lib/api-hooks";
+import { useBills, useCreateBill, useBillParticipants } from "@/lib/api-hooks";
 import { useQrScanner } from "@/hooks/use-qr-scanner";
 import {
   Dialog,
@@ -17,6 +17,51 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { Bill } from "@shared/schema";
+
+function BillCard({ bill, walletAddress }: { bill: Bill; walletAddress: string }) {
+  const { data: participants = [] } = useBillParticipants(bill.id);
+  
+  // Find the user's participant record to get their share
+  const userParticipant = participants.find(p => p.address === walletAddress);
+  const share = userParticipant ? parseFloat(userParticipant.share).toFixed(2) : (parseFloat(bill.totalAmount) / Math.max(participants.length, 1)).toFixed(2);
+  
+  return (
+    <Card className="hover-elevate" data-testid={`card-bill-${bill.id}`}>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <CardTitle className="text-lg">{bill.title}</CardTitle>
+            <CardDescription className="mt-1">
+              {bill.description}
+            </CardDescription>
+          </div>
+          <Badge variant={bill.status === "active" ? "default" : "secondary"}>
+            {bill.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Total Amount</span>
+          <span className="font-mono font-semibold">{bill.totalAmount} TON</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Participants</span>
+          <span className="font-mono font-semibold">{participants.length || "N/A"}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Your Share</span>
+          <span className="font-mono font-semibold text-primary">{share} TON</span>
+        </div>
+        <Button className="w-full gap-2" variant="outline" data-testid={`button-settle-${bill.id}`}>
+          <CheckCircle className="h-4 w-4" />
+          Settle Up
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Bills() {
   const walletAddress = localStorage.getItem("ton_wallet_address") || "";
@@ -75,6 +120,7 @@ export default function Bills() {
         totalAmount: amount,
         description: `Split among ${totalParticipants} participants`,
         createdBy: walletAddress,
+        participants, // Send participants array to API
       });
 
       toast({
@@ -229,40 +275,9 @@ export default function Bills() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {bills.map((bill) => {
-            const share = (parseFloat(bill.totalAmount) / 4).toFixed(1);
-            return (
-              <Card key={bill.id} className="hover-elevate" data-testid={`card-bill-${bill.id}`}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{bill.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {bill.description}
-                      </CardDescription>
-                    </div>
-                    <Badge variant={bill.status === "active" ? "default" : "secondary"}>
-                      {bill.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Total Amount</span>
-                    <span className="font-mono font-semibold">{bill.totalAmount} TON</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Your Share</span>
-                    <span className="font-mono font-semibold text-primary">{share} TON</span>
-                  </div>
-                  <Button className="w-full gap-2" variant="outline" data-testid={`button-settle-${bill.id}`}>
-                    <CheckCircle className="h-4 w-4" />
-                    Settle Up
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {bills.map((bill) => (
+            <BillCard key={bill.id} bill={bill} walletAddress={walletAddress} />
+          ))}
         </div>
       )}
     </div>
