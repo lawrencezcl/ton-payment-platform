@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Receipt, QrCode, Copy, Loader2 } from "lucide-react";
 import { useInvoices, useCreateInvoice } from "@/lib/api-hooks";
+import { useQrScanner } from "@/hooks/use-qr-scanner";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +29,31 @@ export default function Invoices() {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [payerAddress, setPayerAddress] = useState("");
   const [showQR, setShowQR] = useState<string | null>(null);
   const { toast } = useToast();
+  const { scanQrCode } = useQrScanner();
+
+  const handleScanQr = () => {
+    scanQrCode((qrData) => {
+      // Validate if it looks like a TON address
+      if (qrData.match(/^[UEk][Qf][A-Za-z0-9_-]{46}$/)) {
+        setPayerAddress(qrData);
+        toast({
+          title: "Address Scanned",
+          description: "Payer wallet address added successfully",
+        });
+        return true; // Close scanner
+      } else {
+        toast({
+          title: "Invalid QR Code",
+          description: "Please scan a valid TON wallet address",
+          variant: "destructive",
+        });
+        return false; // Keep scanner open
+      }
+    }, { text: "Scan payer's wallet QR code" });
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +64,7 @@ export default function Invoices() {
         amount,
         description,
         fromAddress: walletAddress,
-        toAddress: null,
+        toAddress: payerAddress || null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
@@ -53,6 +77,7 @@ export default function Invoices() {
       setTitle("");
       setAmount("");
       setDescription("");
+      setPayerAddress("");
       setOpen(false);
     } catch (error) {
       toast({
@@ -131,6 +156,33 @@ export default function Invoices() {
                   rows={3}
                   data-testid="input-invoice-description"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payer-address">Payer Address (Optional)</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="payer-address"
+                      placeholder="Leave empty for anyone to pay"
+                      value={payerAddress}
+                      onChange={(e) => setPayerAddress(e.target.value)}
+                      className="font-mono"
+                      data-testid="input-payer-address"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleScanQr}
+                    data-testid="button-scan-qr-payer"
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Specify a payer to restrict who can pay this invoice
+                </p>
               </div>
               <Button type="submit" className="w-full" data-testid="button-submit-invoice">
                 Create Invoice

@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/empty-state";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Split, Users, CheckCircle, Loader2 } from "lucide-react";
+import { Plus, Split, Users, CheckCircle, Loader2, QrCode, X } from "lucide-react";
 import { useBills, useCreateBill } from "@/lib/api-hooks";
+import { useQrScanner } from "@/hooks/use-qr-scanner";
 import {
   Dialog,
   DialogContent,
@@ -25,17 +26,54 @@ export default function Bills() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [participantCount, setParticipantCount] = useState("2");
+  const [participants, setParticipants] = useState<string[]>([]);
   const { toast } = useToast();
+  const { scanQrCode } = useQrScanner();
+
+  const handleScanQr = () => {
+    scanQrCode((qrData) => {
+      // Validate if it looks like a TON address
+      if (qrData.match(/^[UEk][Qf][A-Za-z0-9_-]{46}$/)) {
+        // Check if address already added
+        if (participants.includes(qrData)) {
+          toast({
+            title: "Already Added",
+            description: "This participant is already in the list",
+            variant: "destructive",
+          });
+          return false; // Keep scanner open
+        }
+        
+        setParticipants([...participants, qrData]);
+        toast({
+          title: "Participant Added",
+          description: "Wallet address added to participants",
+        });
+        return false; // Keep scanner open for more participants
+      } else {
+        toast({
+          title: "Invalid QR Code",
+          description: "Please scan a valid TON wallet address",
+          variant: "destructive",
+        });
+        return false; // Keep scanner open
+      }
+    }, { text: "Scan participant's wallet QR code" });
+  };
+
+  const removeParticipant = (address: string) => {
+    setParticipants(participants.filter(p => p !== address));
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const totalParticipants = participants.length + 1; // +1 for creator
     try {
       await createBill.mutateAsync({
         title,
         totalAmount: amount,
-        description: `Split among ${participantCount} participants`,
+        description: `Split among ${totalParticipants} participants`,
         createdBy: walletAddress,
       });
 
@@ -46,7 +84,7 @@ export default function Bills() {
 
       setTitle("");
       setAmount("");
-      setParticipantCount("2");
+      setParticipants([]);
       setOpen(false);
     } catch (error) {
       toast({
@@ -108,16 +146,54 @@ export default function Bills() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="participants">Number of Participants</Label>
-                <Input
-                  id="participants"
-                  type="number"
-                  min="2"
-                  value={participantCount}
-                  onChange={(e) => setParticipantCount(e.target.value)}
-                  required
-                  data-testid="input-participants"
-                />
+                <div className="flex items-center justify-between">
+                  <Label>Participants ({participants.length + 1})</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleScanQr}
+                    className="gap-2"
+                    data-testid="button-scan-participant"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Scan QR
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-mono flex-1 truncate">
+                      You ({walletAddress.slice(0, 8)}...)
+                    </span>
+                    <Badge variant="secondary" className="text-xs">Creator</Badge>
+                  </div>
+                  {participants.map((address, index) => (
+                    <div
+                      key={address}
+                      className="flex items-center gap-2 p-2 bg-muted rounded-md"
+                      data-testid={`participant-${index}`}
+                    >
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-mono flex-1 truncate">
+                        {address.slice(0, 8)}...{address.slice(-6)}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => removeParticipant(address)}
+                        data-testid={`button-remove-${index}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scan QR codes to add participants. Each person pays {participants.length > 0 ? `${(parseFloat(amount || "0") / (participants.length + 1)).toFixed(2)} TON` : "an equal share"}.
+                </p>
               </div>
               <Button type="submit" className="w-full" data-testid="button-submit-bill">
                 Create Bill

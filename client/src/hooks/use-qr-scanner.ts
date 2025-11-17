@@ -36,9 +36,12 @@ export function useQrScanner() {
             text: options?.text || "Scan QR Code",
           },
           (qrData: string) => {
-            const shouldClose = onScan(qrData);
-            // Return true to close the popup, false to keep it open
-            return shouldClose !== false;
+            const result = onScan(qrData);
+            // Return true to close the popup, void to keep it open
+            if (result === false) {
+              return; // Keep popup open
+            }
+            return true; // Close popup
           }
         );
       } catch (error) {
