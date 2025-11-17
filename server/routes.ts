@@ -317,14 +317,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Debit participant's wallet
         const participantWallet = await storage.getWallet(participant.address);
         if (participantWallet) {
-          const newBalance = (parseFloat(participantWallet.balance) - parseFloat(participant.shareAmount)).toString();
+          const newBalance = (parseFloat(participantWallet.balance) - parseFloat(participant.share)).toString();
           await storage.updateWalletBalance(participant.address, newBalance);
         }
 
         // Credit bill creator's wallet
         const creatorWallet = await storage.getWallet(bill.createdBy);
         if (creatorWallet) {
-          const newBalance = (parseFloat(creatorWallet.balance) + parseFloat(participant.shareAmount)).toString();
+          const newBalance = (parseFloat(creatorWallet.balance) + parseFloat(participant.share)).toString();
           await storage.updateWalletBalance(bill.createdBy, newBalance);
         }
 

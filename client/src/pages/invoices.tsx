@@ -62,7 +62,7 @@ export default function Invoices() {
       await createInvoice.mutateAsync({
         title,
         amount,
-        description,
+        description: description || null,
         fromAddress: walletAddress,
         toAddress: payerAddress || null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),

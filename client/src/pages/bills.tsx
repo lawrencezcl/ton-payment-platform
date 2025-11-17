@@ -20,11 +20,13 @@ import {
 import type { Bill } from "@shared/schema";
 
 function BillCard({ bill, walletAddress }: { bill: Bill; walletAddress: string }) {
-  const { data: participants = [] } = useBillParticipants(bill.id);
+  const { data: participants = [], isLoading, error } = useBillParticipants(bill.id);
   
   // Find the user's participant record to get their share
   const userParticipant = participants.find(p => p.address === walletAddress);
-  const share = userParticipant ? parseFloat(userParticipant.share).toFixed(2) : (parseFloat(bill.totalAmount) / Math.max(participants.length, 1)).toFixed(2);
+  const share = userParticipant 
+    ? parseFloat(userParticipant.share).toFixed(2) 
+    : "—";
   
   return (
     <Card className="hover-elevate" data-testid={`card-bill-${bill.id}`}>
@@ -48,11 +50,21 @@ function BillCard({ bill, walletAddress }: { bill: Bill; walletAddress: string }
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Participants</span>
-          <span className="font-mono font-semibold">{participants.length || "N/A"}</span>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : error ? (
+            <span className="text-xs text-destructive">Error</span>
+          ) : (
+            <span className="font-mono font-semibold">{participants.length}</span>
+          )}
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Your Share</span>
-          <span className="font-mono font-semibold text-primary">{share} TON</span>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <span className="font-mono font-semibold text-primary">{share} TON</span>
+          )}
         </div>
         <Button className="w-full gap-2" variant="outline" data-testid={`button-settle-${bill.id}`}>
           <CheckCircle className="h-4 w-4" />
