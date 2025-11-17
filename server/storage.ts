@@ -11,8 +11,17 @@ import {
   type InsertInvoice,
   type MerchantPayment,
   type InsertMerchantPayment,
+  wallets,
+  transactions,
+  bills,
+  billParticipants,
+  invoices,
+  merchantPayments,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { eq, or, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Wallet operations
@@ -248,4 +257,172 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database storage implementation
+export class DbStorage implements IStorage {
+  private db;
+
+  constructor() {
+    const sql = neon(process.env.DATABASE_URL!);
+    this.db = drizzle(sql);
+  }
+
+  // Wallet operations
+  async getWallet(address: string): Promise<Wallet | undefined> {
+    const result = await this.db.select().from(wallets).where(eq(wallets.address, address));
+    return result[0];
+  }
+
+  async createWallet(insertWallet: InsertWallet): Promise<Wallet> {
+    const result = await this.db.insert(wallets).values(insertWallet).returning();
+    return result[0];
+  }
+
+  async updateWalletBalance(address: string, balance: string): Promise<Wallet | undefined> {
+    const result = await this.db.update(wallets)
+      .set({ balance })
+      .where(eq(wallets.address, address))
+      .returning();
+    return result[0];
+  }
+
+  // Transaction operations
+  async getTransaction(id: string): Promise<Transaction | undefined> {
+    const result = await this.db.select().from(transactions).where(eq(transactions.id, id));
+    return result[0];
+  }
+
+  async getTransactionsByAddress(address: string): Promise<Transaction[]> {
+    const result = await this.db.select().from(transactions)
+      .where(or(eq(transactions.fromAddress, address), eq(transactions.toAddress, address)))
+      .orderBy(desc(transactions.createdAt));
+    return result;
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const result = await this.db.insert(transactions).values(insertTransaction).returning();
+    return result[0];
+  }
+
+  async updateTransactionStatus(id: string, status: string, hash?: string): Promise<Transaction | undefined> {
+    const updateData: any = { status };
+    if (hash) {
+      updateData.hash = hash;
+    }
+    const result = await this.db.update(transactions)
+      .set(updateData)
+      .where(eq(transactions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Bill operations
+  async getBill(id: string): Promise<Bill | undefined> {
+    const result = await this.db.select().from(bills).where(eq(bills.id, id));
+    return result[0];
+  }
+
+  async getBillsByCreator(address: string): Promise<Bill[]> {
+    const result = await this.db.select().from(bills)
+      .where(eq(bills.createdBy, address))
+      .orderBy(desc(bills.createdAt));
+    return result;
+  }
+
+  async createBill(insertBill: InsertBill): Promise<Bill> {
+    const result = await this.db.insert(bills).values({
+      ...insertBill,
+      status: "active",
+    }).returning();
+    return result[0];
+  }
+
+  async updateBillStatus(id: string, status: string): Promise<Bill | undefined> {
+    const result = await this.db.update(bills)
+      .set({ status })
+      .where(eq(bills.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Bill participant operations
+  async getBillParticipants(billId: string): Promise<BillParticipant[]> {
+    const result = await this.db.select().from(billParticipants)
+      .where(eq(billParticipants.billId, billId));
+    return result;
+  }
+
+  async createBillParticipant(insertParticipant: InsertBillParticipant): Promise<BillParticipant> {
+    const result = await this.db.insert(billParticipants).values({
+      ...insertParticipant,
+      paid: false,
+      paidAt: null,
+    }).returning();
+    return result[0];
+  }
+
+  async markParticipantPaid(id: string): Promise<BillParticipant | undefined> {
+    const result = await this.db.update(billParticipants)
+      .set({ paid: true, paidAt: new Date() })
+      .where(eq(billParticipants.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Invoice operations
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const result = await this.db.select().from(invoices).where(eq(invoices.id, id));
+    return result[0];
+  }
+
+  async getInvoicesByAddress(address: string): Promise<Invoice[]> {
+    const result = await this.db.select().from(invoices)
+      .where(eq(invoices.fromAddress, address))
+      .orderBy(desc(invoices.createdAt));
+    return result;
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    const result = await this.db.insert(invoices).values({
+      ...insertInvoice,
+      status: "pending",
+      paidAt: null,
+    }).returning();
+    return result[0];
+  }
+
+  async updateInvoiceStatus(id: string, status: string, paidAt?: Date): Promise<Invoice | undefined> {
+    const updateData: any = { status };
+    if (paidAt) {
+      updateData.paidAt = paidAt;
+    }
+    const result = await this.db.update(invoices)
+      .set(updateData)
+      .where(eq(invoices.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Merchant payment operations
+  async getMerchantPayment(id: string): Promise<MerchantPayment | undefined> {
+    const result = await this.db.select().from(merchantPayments).where(eq(merchantPayments.id, id));
+    return result[0];
+  }
+
+  async createMerchantPayment(insertPayment: InsertMerchantPayment): Promise<MerchantPayment> {
+    const result = await this.db.insert(merchantPayments).values({
+      ...insertPayment,
+      status: "pending",
+    }).returning();
+    return result[0];
+  }
+
+  async updateMerchantPaymentStatus(id: string, status: string): Promise<MerchantPayment | undefined> {
+    const result = await this.db.update(merchantPayments)
+      .set({ status })
+      .where(eq(merchantPayments.id, id))
+      .returning();
+    return result[0];
+  }
+}
+
+export const storage = process.env.DATABASE_URL ? new DbStorage() : new MemStorage();

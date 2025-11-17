@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Wallet, Copy, LogOut, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useWallet } from "@/lib/api-hooks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +20,11 @@ const STORAGE_KEY = "ton_wallet_address";
 export function WalletConnector({ onConnect }: WalletConnectorProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState("");
-  const [balance, setBalance] = useState("125.4");
   const { toast } = useToast();
+  
+  // Use react-query for wallet data
+  const { data: walletData, refetch } = useWallet(address);
+  const balance = walletData?.balance ? parseFloat(walletData.balance).toFixed(1) : "0.0";
 
   useEffect(() => {
     const savedAddress = localStorage.getItem(STORAGE_KEY);
@@ -28,15 +32,6 @@ export function WalletConnector({ onConnect }: WalletConnectorProps) {
       setAddress(savedAddress);
       setConnected(true);
       onConnect?.(savedAddress);
-      
-      fetch(`/api/wallets/${savedAddress}`)
-        .then(res => res.json())
-        .then(wallet => {
-          if (wallet.balance) {
-            setBalance(parseFloat(wallet.balance).toFixed(1));
-          }
-        })
-        .catch(() => {});
     }
   }, [onConnect]);
 
@@ -44,16 +39,17 @@ export function WalletConnector({ onConnect }: WalletConnectorProps) {
     try {
       const fullAddress = "UQD" + Math.random().toString(36).substring(2, 20).toUpperCase();
       
-      const wallet = await apiRequest('POST', '/api/wallets', {
+      await apiRequest('POST', '/api/wallets', {
         address: fullAddress,
-        balance: "100.0",
       });
 
       setAddress(fullAddress);
-      setBalance(parseFloat(wallet.balance).toFixed(1));
       setConnected(true);
       localStorage.setItem(STORAGE_KEY, fullAddress);
       onConnect?.(fullAddress);
+      
+      // Refetch wallet data to get fresh balance
+      setTimeout(() => refetch(), 500);
       
       toast({
         title: "Wallet Connected",

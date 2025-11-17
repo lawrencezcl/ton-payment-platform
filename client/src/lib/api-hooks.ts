@@ -25,6 +25,7 @@ export function useWallet(address?: string) {
     },
     retry: 3,
     retryDelay: 1000,
+    refetchInterval: 3000, // Poll every 3 seconds for balance updates
   });
 }
 

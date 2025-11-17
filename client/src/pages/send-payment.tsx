@@ -28,7 +28,7 @@ export default function SendPayment() {
         toAddress: address,
         amount,
         type: "send",
-        status: "pending",
+        status: "confirmed",
         description,
       });
 

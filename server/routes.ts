@@ -67,8 +67,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Wallet endpoints
   app.post("/api/wallets", async (req: Request, res: Response) => {
     try {
-      const data = insertWalletSchema.parse(req.body);
-      const wallet = await storage.createWallet(data);
+      const schema = insertWalletSchema.omit({ balance: true });
+      const data = schema.parse(req.body);
+      
+      // Check if wallet already exists
+      const existing = await storage.getWallet(data.address);
+      if (existing) {
+        return res.json(existing);
+      }
+      
+      // Create new wallet with default balance
+      const wallet = await storage.createWallet({
+        ...data,
+        balance: "100.0",
+      });
       res.json(wallet);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -104,6 +116,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertTransactionSchema.parse(req.body);
       const transaction = await storage.createTransaction(data);
+      
+      // Update wallet balances for confirmed transactions
+      if (transaction.status === 'confirmed') {
+        const fromWallet = await storage.getWallet(transaction.fromAddress);
+        const toWallet = await storage.getWallet(transaction.toAddress);
+        
+        if (fromWallet) {
+          const newBalance = (parseFloat(fromWallet.balance) - parseFloat(transaction.amount)).toString();
+          await storage.updateWalletBalance(transaction.fromAddress, newBalance);
+        }
+        
+        if (toWallet) {
+          const newBalance = (parseFloat(toWallet.balance) + parseFloat(transaction.amount)).toString();
+          await storage.updateWalletBalance(transaction.toAddress, newBalance);
+        }
+      }
       
       // Broadcast to connected clients
       broadcast('transaction:created', transaction);
@@ -222,6 +250,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Participant not found" });
       }
 
+      // Update wallet balances
+      const bill = await storage.getBill(participant.billId);
+      if (bill) {
+        // Debit participant's wallet
+        const participantWallet = await storage.getWallet(participant.address);
+        if (participantWallet) {
+          const newBalance = (parseFloat(participantWallet.balance) - parseFloat(participant.shareAmount)).toString();
+          await storage.updateWalletBalance(participant.address, newBalance);
+        }
+
+        // Credit bill creator's wallet
+        const creatorWallet = await storage.getWallet(bill.createdBy);
+        if (creatorWallet) {
+          const newBalance = (parseFloat(creatorWallet.balance) + parseFloat(participant.shareAmount)).toString();
+          await storage.updateWalletBalance(bill.createdBy, newBalance);
+        }
+
+        // Check if all participants have paid
+        const allParticipants = await storage.getBillParticipants(participant.billId);
+        const allPaid = allParticipants.every(p => p.paid);
+        if (allPaid) {
+          await storage.updateBillStatus(participant.billId, 'settled');
+        }
+      }
+
       broadcast('participant:paid', participant);
       
       res.json(participant);
@@ -262,12 +315,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/invoices/:id/status", async (req: Request, res: Response) => {
     try {
-      const { status } = req.body;
+      const { status, payerAddress } = req.body;
       const paidAt = status === 'paid' ? new Date() : undefined;
       const invoice = await storage.updateInvoiceStatus(req.params.id, status, paidAt);
       
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      // Update wallet balances when invoice is paid
+      if (status === 'paid' && payerAddress) {
+        // Debit payer's wallet
+        const payerWallet = await storage.getWallet(payerAddress);
+        if (payerWallet) {
+          const newBalance = (parseFloat(payerWallet.balance) - parseFloat(invoice.amount)).toString();
+          await storage.updateWalletBalance(payerAddress, newBalance);
+        }
+
+        // Credit invoice creator's wallet
+        const creatorWallet = await storage.getWallet(invoice.fromAddress);
+        if (creatorWallet) {
+          const newBalance = (parseFloat(creatorWallet.balance) + parseFloat(invoice.amount)).toString();
+          await storage.updateWalletBalance(invoice.fromAddress, newBalance);
+        }
       }
 
       broadcast('invoice:updated', invoice);
