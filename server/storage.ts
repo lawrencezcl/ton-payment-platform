@@ -11,12 +11,15 @@ import {
   type InsertInvoice,
   type MerchantPayment,
   type InsertMerchantPayment,
+  type Gift,
+  type InsertGift,
   wallets,
   transactions,
   bills,
   billParticipants,
   invoices,
   merchantPayments,
+  gifts,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { neon } from "@neondatabase/serverless";
@@ -299,6 +302,9 @@ export class MemStorage implements IStorage {
       isClaimed: false,
       claimedAt: null,
       createdAt: new Date(),
+      description: insertGift.description || null,
+      recipientAddress: insertGift.recipientAddress || null,
+      expiresAt: insertGift.expiresAt || null,
     };
     this.gifts.set(id, gift);
     return gift;
@@ -655,6 +661,17 @@ export class DbStorage implements IStorage {
       .set({ status })
       .where(eq(merchantPayments.id, id))
       .returning();
+    return result[0];
+  }
+
+  // Gift operations
+  async getGift(id: string): Promise<Gift | undefined> {
+    const result = await this.db.select().from(gifts).where(eq(gifts.id, id));
+    return result[0];
+  }
+
+  async createGift(insertGift: InsertGift): Promise<Gift> {
+    const result = await this.db.insert(gifts).values(insertGift).returning();
     return result[0];
   }
 

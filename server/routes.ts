@@ -22,6 +22,7 @@ interface WebSocketClient extends WebSocket {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  console.log('🔄 Registering server routes...');
   const httpServer = createServer(app);
   
   // WebSocket server for real-time updates
@@ -59,24 +60,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // TON Connect manifest endpoint (dynamic domain)
   app.get("/tonconnect-manifest.json", (req: Request, res: Response) => {
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const baseUrl = `${protocol}://${host}`;
-    
-    res.json({
-      url: baseUrl,
-      name: "TON Payment Platform",
-      iconUrl: `${baseUrl}/icon.svg`
-    });
+    try {
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
+      console.log('TON Connect manifest requested:', { protocol, host, baseUrl });
+      
+      const manifest = {
+        url: baseUrl,
+        name: "TON Payment Platform",
+        iconUrl: `${baseUrl}/icon.svg`
+      };
+      
+      console.log('TON Connect manifest response:', manifest);
+      res.json(manifest);
+    } catch (error) {
+      console.error('TON Connect manifest error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // TON price endpoint
   app.get("/api/ton-price", (req: Request, res: Response) => {
-    res.json({ 
-      usd: TON_PRICE_USD,
-      eur: TON_PRICE_USD * 0.92,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      console.log('TON price API called');
+      const response = { 
+        usd: TON_PRICE_USD,
+        eur: TON_PRICE_USD * 0.92,
+        timestamp: new Date().toISOString()
+      };
+      console.log('TON price response:', response);
+      res.json(response);
+    } catch (error) {
+      console.error('TON price API error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Telegram auth endpoint

@@ -1,14 +1,39 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Health check endpoint - must be before other middleware
+app.get("/health", (req: Request, res: Response) => {
+  res.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development"
+  });
+});
 
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
   }
 }
+
+// Configure CORS for TON Connect and external APIs
+app.use(cors({
+  origin: [
+    'https://tonpayment-gosoe2vy5-lawrencezcls-projects.vercel.app',
+    'https://connect.token.im',
+    'https://tc.architecton.su',
+    'https://app.tonkeeper.com',
+    'https://wallet.tonhub.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;
@@ -47,7 +72,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    console.log('🚀 Starting TON Payment Platform server...');
+    console.log('📋 Environment variables check:');
+    console.log('   NODE_ENV:', process.env.NODE_ENV);
+    console.log('   PORT:', process.env.PORT);
+    console.log('   DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+    
+    const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -71,11 +103,25 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  
+  // Only start server if not in Vercel environment
+  if (!process.env.VERCEL) {
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`🚀 TON Payment Platform serving on port ${port}`);
+      log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      log(`🌐 Health check: http://localhost:${port}/health`);
+    });
+  }
+  
+  } catch (error) {
+    console.error('❌ Server startup error:', error);
+    process.exit(1);
+  }
 })();
+
+// Export for Vercel serverless functions
+export default app;

@@ -2,10 +2,21 @@ import { StatCard } from "@/components/stat-card";
 import { TransactionItem } from "@/components/transaction-item";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wallet, Clock, Receipt, TrendingUp, Send, Plus, FileText, Split, Loader2 } from "lucide-react";
+import { Wallet, Clock, Receipt, TrendingUp, Send, Plus, FileText, Split, Loader2, QrCode, Camera } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet, useTransactions, useBills, useInvoices, useTonPrice } from "@/lib/api-hooks";
 import { formatDistanceToNow } from "date-fns";
+import { useState, useCallback } from "react";
+import { useQrScanner } from "@/hooks/use-qr-scanner";
+import { useToast } from "@/hooks/use-toast";
+import { QrCodeComponent } from "@/components/qr-code-component";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const walletAddress = localStorage.getItem("ton_wallet_address") || "";
@@ -14,6 +25,9 @@ export default function Dashboard() {
   const { data: bills = [], isLoading: billsLoading } = useBills(walletAddress);
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices(walletAddress);
   const { data: tonPrice } = useTonPrice();
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const { scanQrCode, isScanning } = useQrScanner();
+  const { toast } = useToast();
 
   const recentTransactions = transactions.slice(0, 3).map(tx => ({
     id: tx.id,
@@ -38,6 +52,43 @@ export default function Dashboard() {
 
   const balance = wallet ? parseFloat(wallet.balance) : 0;
   const usdBalance = tonPrice && wallet ? (parseFloat(wallet.balance) * tonPrice.usd).toFixed(2) : "0.00";
+
+  const handleScanQr = useCallback(() => {
+    setShowQrScanner(true);
+  }, []);
+
+  const handleQrScanResult = useCallback((qrData: string) => {
+    // Validate if it looks like a TON address
+    if (qrData.match(/^[UEk][Qf][A-Za-z0-9_-]{46}$/)) {
+      // Navigate to send payment with the scanned address
+      window.location.href = `/send?address=${encodeURIComponent(qrData)}`;
+      toast({
+        title: "Address Scanned",
+        description: "Opening send payment with scanned address",
+      });
+      setShowQrScanner(false);
+      return true; // Close scanner
+    } else if (qrData.startsWith('https://tonpay.app/pay/')) {
+      // Handle payment links
+      const address = qrData.split('/').pop();
+      if (address) {
+        window.location.href = `/send?address=${encodeURIComponent(address)}`;
+        toast({
+          title: "Payment Link Scanned",
+          description: "Opening send payment with payment link",
+        });
+        setShowQrScanner(false);
+        return true;
+      }
+    } else {
+      toast({
+        title: "Invalid QR Code",
+        description: "Please scan a valid TON wallet address or payment link",
+        variant: "destructive",
+      });
+      return false; // Keep scanner open
+    }
+  }, [toast]);
 
   return (
     <div className="space-y-6">
@@ -79,7 +130,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <Link href="/send">
           <Button className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-send">
             <Send className="h-5 w-5" />
@@ -89,6 +140,19 @@ export default function Dashboard() {
             </div>
           </Button>
         </Link>
+        <Button 
+          variant="outline" 
+          className="w-full gap-2 h-auto py-4 min-h-[60px]" 
+          onClick={handleScanQr}
+          disabled={isScanning}
+          data-testid="button-quick-scan"
+        >
+          <Camera className="h-5 w-5" />
+          <div className="text-left">
+            <div className="font-semibold">Scan QR</div>
+            <div className="text-xs font-normal opacity-70">Scan to pay</div>
+          </div>
+        </Button>
         <Link href="/invoices">
           <Button variant="outline" className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-invoice">
             <FileText className="h-5 w-5" />
@@ -146,6 +210,28 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* QR Code Scanner Dialog */}
+      <Dialog open={showQrScanner} onOpenChange={setShowQrScanner}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Scan QR Code</DialogTitle>
+            <DialogDescription>
+              Scan a TON wallet address or payment link to send payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <QrCodeComponent
+              value="scan-mode"
+              title=""
+              description="Position the QR code within the frame"
+              showScan={true}
+              onScan={handleQrScanResult}
+              size={280}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

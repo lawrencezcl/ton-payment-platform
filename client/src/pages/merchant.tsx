@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Copy, QrCode } from "lucide-react";
+import { Store, Copy, QrCode, Download, Share2, Camera, Check } from "lucide-react";
 import { useCreateMerchantPayment } from "@/lib/api-hooks";
-import { QRCodeSVG } from "qrcode.react";
+import { QrCodeComponent } from "@/components/qr-code-component";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ export default function Merchant() {
   const [description, setDescription] = useState("");
   const [paymentLink, setPaymentLink] = useState("");
   const [showQR, setShowQR] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const { toast } = useToast();
   const createMerchantPayment = useCreateMerchantPayment();
 
@@ -53,13 +54,104 @@ export default function Merchant() {
     }
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(paymentLink);
-    toast({
-      title: "Link Copied",
-      description: "Payment link copied to clipboard.",
-    });
-  };
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(paymentLink);
+      setCopiedLink(true);
+      toast({
+        title: "Link Copied",
+        description: "Payment link copied to clipboard.",
+      });
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  }, [paymentLink, toast]);
+
+  const sharePayment = useCallback(async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${merchantName} - Payment Request`,
+          text: `Pay ${amount} TON to ${merchantName}`,
+          url: paymentLink,
+        });
+      } else {
+        copyLink();
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      copyLink();
+    }
+  }, [paymentLink, merchantName, amount, copyLink]);
+
+  const downloadQrCode = useCallback(() => {
+    try {
+      const svg = document.querySelector(`#merchant-qr svg`);
+      if (!svg) {
+        toast({
+          title: "Download Failed",
+          description: "Could not find QR code to download",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      if (!ctx) {
+        toast({
+          title: "Download Failed",
+          description: "Could not create canvas",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      canvas.width = 512;
+      canvas.height = 512;
+      
+      const img = new Image();
+      img.onload = () => {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `payment-qr-${merchantName.replace(/\s+/g, '-')}-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            toast({
+              title: "QR Code Downloaded",
+              description: "Payment QR code saved to your device",
+            });
+          }
+        }, "image/png");
+      };
+      
+      img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: "Could not download QR code",
+        variant: "destructive",
+      });
+    }
+  }, [merchantName, toast]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 px-1 sm:px-0">
@@ -144,16 +236,36 @@ export default function Merchant() {
             <div className="p-4 bg-muted rounded-md break-all font-mono text-sm" data-testid="text-payment-link">
               {paymentLink}
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
                 className="flex-1 gap-2 min-h-[44px]"
                 onClick={copyLink}
                 data-testid="button-copy-payment-link"
               >
-                <Copy className="h-4 w-4" />
-                Copy Link
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-600" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </>
+                )}
               </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2 min-h-[44px]"
+                onClick={sharePayment}
+                data-testid="button-share-payment"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
                 className="flex-1 gap-2 min-h-[44px]"
@@ -161,7 +273,16 @@ export default function Merchant() {
                 data-testid="button-show-payment-qr"
               >
                 <QrCode className="h-4 w-4" />
-                Show QR Code
+                Show QR
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2 min-h-[44px]"
+                onClick={downloadQrCode}
+                data-testid="button-download-qr"
+              >
+                <Download className="h-4 w-4" />
+                Download QR
               </Button>
             </div>
           </CardContent>
@@ -177,26 +298,50 @@ export default function Merchant() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-3 sm:p-4 rounded-md">
-              <QRCodeSVG
+            <div id="merchant-qr" className="bg-white p-4 rounded-lg">
+              <QrCodeComponent
                 value={paymentLink}
-                size={window.innerWidth < 400 ? 200 : 256}
-                level="H"
+                title=""
+                description=""
+                showDownload={false}
+                showScan={false}
+                size={window.innerWidth < 400 ? 240 : 280}
               />
             </div>
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1 w-full">
               <p className="font-semibold">{merchantName}</p>
               <p className="text-2xl font-bold font-mono">{amount} TON</p>
+              {description && <p className="text-sm text-muted-foreground">{description}</p>}
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full gap-2"
-              onClick={copyLink}
-              data-testid="button-copy-qr-merchant-link"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Payment Link
-            </Button>
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={copyLink}
+                data-testid="button-copy-qr-merchant-link"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-600" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={downloadQrCode}
+                data-testid="button-download-qr-merchant"
+              >
+                <Download className="h-4 w-4" />
+                Download QR
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
