@@ -57,6 +57,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   };
 
+  // TON Connect manifest endpoint (dynamic domain)
+  app.get("/tonconnect-manifest.json", (req: Request, res: Response) => {
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    res.json({
+      url: baseUrl,
+      name: "TON Payment Platform",
+      iconUrl: `${baseUrl}/icon.svg`
+    });
+  });
+
   // TON price endpoint
   app.get("/api/ton-price", (req: Request, res: Response) => {
     res.json({ 

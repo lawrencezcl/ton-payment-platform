@@ -1,0 +1,87 @@
+2inject.js:1 Port connected
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_set_header_color Object
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_set_bottom_bar_color Object
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_request_theme 
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_request_viewport 
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_request_safe_area 
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_request_content_safe_area 
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_ready 
+index-BqwzCPFf.js:203 [Telegram.WebView] > postEvent web_app_expand 
+index-BqwzCPFf.js:203 [Telegram.WebApp] Closing confirmation is not supported in version 6.0
+Qt @ index-BqwzCPFf.js:203
+content.js:349 Icon====11IconFont
+content.js:349 scriptUrls====11 Array(0)
+content.js:349 currentScriptUrl====00112 undefined Array(0) 0
+content.js:349 currentScriptUrl====11244customCache.has(scriptUrl) Set(0) false undefined
+content.js:349  Boolean====11255customCache.has(scriptUrl) false
+content.js:3171 @ali/tongyi-next-theme: antd 未安装，Antd 主题配置将不可用
+(anonymous) @ content.js:3171
+content.js:3171 @ali/tongyi-next-theme: antd 未安装，Antd 主题配置将不可用
+(anonymous) @ content.js:3171
+content.js:3171 @ali/tongyi-next-theme: @ant-design/cssinjs 未安装，Antd 主题配置将不可用
+(anonymous) @ content.js:3171
+content.js:2149 悬浮窗
+(index):1 Access to resource at 'https://connect.token.im/tonbridge/events?client_id=84fab05c3c6b628d40e8d1f4617dcd220306c6e6ab043fdc94f01ecbe0491d1a' from origin 'https://d043f2d3-ceeb-4999-b40f-f428a7a740ac.kirk.prod.repl.run' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+connect.token.im/tonbridge/events?client_id=84fab05c3c6b628d40e8d1f4617dcd220306c6e6ab043fdc94f01ecbe0491d1a:1  Failed to load resource: net::ERR_FAILED
+(index):1 Access to resource at 'https://connect.token.im/tonbridge/events?client_id=84fab05c3c6b628d40e8d1f4617dcd220306c6e6ab043fdc94f01ecbe0491d1a' from origin 'https://d043f2d3-ceeb-4999-b40f-f428a7a740ac.kirk.prod.repl.run' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+connect.token.im/tonbridge/events?client_id=84fab05c3c6b628d40e8d1f4617dcd220306c6e6ab043fdc94f01ecbe0491d1a:1  Failed to load resource: net::ERR_FAILED
+content.js:1 Disconnected from polkadot{.js}-0x6e10e163a1550e8d-content
+/api/ton-price:1  Failed to load resource: net::ERR_TIMED_OUT
+index-BqwzCPFf.js:208 [TON_CONNECT_SDK] ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)
+fs @ index-BqwzCPFf.js:208
+index-BqwzCPFf.js:208 Uncaught (in promise) ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)
+(index):1 Failed to launch 'tonkeeper-tc://?v=2&id=21ec1ee023541bd7878387c1f2884f435f551cab4dfb2208eb53a2d48dd06907&r=%7B%22manifestUrl%22%3A%22https%3A%2F%2Fd043f2d3-ceeb-4999-b40f-f428a7a740ac.kirk.prod.repl.run%2Ftonconnect-manifest.json%22%2C%22items%22%3A%5B%7B%22name%22%3A%22ton_addr%22%7D%5D%7D&ret=none' because the scheme does not have a registered handler.
+index-BqwzCPFf.js:208 [TON_CONNECT_SDK] ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)
+fs @ index-BqwzCPFf.js:208
+index-BqwzCPFf.js:208 Uncaught (in promise) ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)
+index-BqwzCPFf.js:208 [TON_CONNECT_SDK] ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)
+fs @ index-BqwzCPFf.js:208
+index-BqwzCPFf.js:208 Uncaught (in promise) ip: [TON_CONNECT_SDK_ERROR] ip: Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest
+App manifest content error
+    at VR.parseError (index-BqwzCPFf.js:208:3132)
+    at oa.walletEventsListener (index-BqwzCPFf.js:208:69829)
+    at index-BqwzCPFf.js:208:21238
+    at Array.forEach (<anonymous>)
+    at hu.<anonymous> (index-BqwzCPFf.js:208:21227)
+    at Generator.next (<anonymous>)
+    at a (index-BqwzCPFf.js:207:675)

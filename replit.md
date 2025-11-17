@@ -11,7 +11,22 @@ A comprehensive Web3 payment platform built for the TON blockchain ecosystem, de
 
 ## Recent Changes
 
-**November 17, 2025:**
+**November 17, 2025 (Latest):**
+- **Fixed TON Connect Manifest Validation**:
+  - Created dynamic `/tonconnect-manifest.json` endpoint that automatically uses correct domain
+  - Removed static manifest file to prevent URL mismatches between dev/prod environments
+  - Added custom SVG icon at `/icon.svg` (180x180px, TON-themed)
+  - Manifest now validates correctly with TON Connect SDK in all environments
+- **Complete Mobile Optimization**:
+  - All touch targets now meet or exceed 44px minimum (Apple/Google standards)
+  - Primary action buttons: 60px height (dashboard), 48px (forms), 44px (cards)
+  - Responsive layouts: Single column on mobile, multi-column on tablet/desktop
+  - Mobile-optimized dialogs with 90vh max height and overflow scrolling
+  - QR codes resize automatically based on screen width (200px/256px)
+  - Full-width buttons on mobile for easy tapping
+  - Adaptive spacing: Reduced padding/gaps on mobile for optimal density
+
+**November 17, 2025 (Earlier):**
 - **Mobile-First Responsive Design Enhancements**:
   - Responsive page headers: Flexible layouts (flex-col sm:flex-row) that stack vertically on mobile
   - Responsive typography: Smaller text on mobile (text-2xl sm:text-3xl for headings)

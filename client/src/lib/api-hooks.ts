@@ -4,11 +4,20 @@ import type { Transaction, Bill, Invoice, Wallet, BillParticipant } from "@share
 
 // TON Price
 export function useTonPrice() {
-  return useQuery({
+  return useQuery<{
+    usd: number;
+    eur: number;
+    timestamp: string;
+  }>({
     queryKey: ['/api/ton-price'],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: 3,
     retryDelay: 1000,
+    queryFn: async () => {
+      const response = await fetch('/api/ton-price');
+      if (!response.ok) throw new Error('Failed to fetch TON price');
+      return response.json();
+    },
   });
 }
 
@@ -123,7 +132,8 @@ export function useCreateInvoice() {
 export function useCreateMerchantPayment() {
   return useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('POST', '/api/merchant-payments', data);
+      const response = await apiRequest('POST', '/api/merchant-payments', data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/merchant-payments'] });
