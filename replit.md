@@ -12,11 +12,22 @@ A comprehensive Web3 payment platform built for the TON blockchain ecosystem, de
 ## Recent Changes
 
 **November 17, 2025:**
-- Implemented Telegram Mini App integration using @twa-dev/sdk
-- Added TelegramProvider context wrapper for app-wide Telegram WebApp access
-- Updated wallet connector to display Telegram user profile (avatar, name, username)
-- Telegram user info shows in header alongside wallet balance
-- App expands to full height in Telegram WebApp with closing confirmation
+- **TON Connect Integration**: Replaced mock wallet system with real TON Connect SDK
+  - Installed @tonconnect/ui-react for wallet connection protocol
+  - Created tonconnect-manifest.json for app metadata and wallet discovery
+  - Implemented real wallet connection via TonConnectUIProvider
+  - Wallet connector uses useTonAddress, useTonConnectUI, useTonWallet hooks
+  - Supports Tonkeeper, MyTonWallet, and other TON-compatible wallets
+- **Real TON Blockchain Integration**:
+  - Fetches actual wallet balances from TON testnet using API calls
+  - No @ton/ton dependency to avoid Buffer polyfill complexity
+  - Direct JSON-RPC calls to testnet.toncenter.com for balance queries
+  - Balance updates every 10 seconds when wallet connected
+- **Telegram Mini App Integration**: Using @twa-dev/sdk
+  - TelegramProvider context wrapper for app-wide Telegram WebApp access
+  - Displays Telegram user profile (avatar, name, username) in header
+  - App expands to full height in Telegram WebApp with closing confirmation
+- **Buffer Polyfill Solution**: Added buffer package polyfill in index.html for browser compatibility
 
 **Previous:**
 - PostgreSQL database with DbStorage using Drizzle ORM
