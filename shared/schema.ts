@@ -104,8 +104,18 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   createdAt: true,
   status: true,
   paidAt: true,
+  dueDate: true,
+  expiresAt: true,
 }).extend({
   amount: z.string().regex(/^\d+(\.\d+)?$/),
+  dueDate: z.preprocess((val) => {
+    if (!val) return null;
+    return val instanceof Date ? val : new Date(val as string);
+  }, z.date().nullable().optional()),
+  expiresAt: z.preprocess((val) => {
+    if (!val) return null;
+    return val instanceof Date ? val : new Date(val as string);
+  }, z.date().nullable().optional()),
 });
 
 export const insertMerchantPaymentSchema = createInsertSchema(merchantPayments).omit({

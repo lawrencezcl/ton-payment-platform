@@ -58,10 +58,19 @@ export default function Invoices() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!walletAddress) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createInvoice.mutateAsync({
         title,
-        amount,
+        amount: String(amount),
         description: description || null,
         fromAddress: walletAddress,
         toAddress: payerAddress || null,
