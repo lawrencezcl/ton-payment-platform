@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TelegramProvider } from "@/lib/telegram";
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { WalletConnector } from "@/components/wallet-connector";
@@ -38,27 +39,32 @@ export default function App() {
     "--sidebar-width-icon": "3rem",
   };
 
+  const manifestUrl = import.meta.env.VITE_TON_MANIFEST_URL || 
+    `${window.location.origin}/tonconnect-manifest.json`;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <TelegramProvider>
-        <TooltipProvider>
-          <SidebarProvider style={style as React.CSSProperties}>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <header className="flex items-center justify-between p-4 border-b gap-4">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <WalletConnector onConnect={setWalletAddress} />
-                </header>
-                <main className="flex-1 overflow-y-auto p-6">
-                  <Router />
-                </main>
+      <TonConnectUIProvider manifestUrl={manifestUrl}>
+        <TelegramProvider>
+          <TooltipProvider>
+            <SidebarProvider style={style as React.CSSProperties}>
+              <div className="flex h-screen w-full">
+                <AppSidebar />
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <header className="flex items-center justify-between p-4 border-b gap-4">
+                    <SidebarTrigger data-testid="button-sidebar-toggle" />
+                    <WalletConnector onConnect={setWalletAddress} />
+                  </header>
+                  <main className="flex-1 overflow-y-auto p-6">
+                    <Router />
+                  </main>
+                </div>
               </div>
-            </div>
-          </SidebarProvider>
-          <Toaster />
-        </TooltipProvider>
-      </TelegramProvider>
+            </SidebarProvider>
+            <Toaster />
+          </TooltipProvider>
+        </TelegramProvider>
+      </TonConnectUIProvider>
     </QueryClientProvider>
   );
 }

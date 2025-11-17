@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Wallet, Copy, LogOut, CheckCircle, User } from "lucide-react";
+import { Copy, LogOut, CheckCircle, User, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useWallet } from "@/lib/api-hooks";
+import { useTonAddress, useTonConnectUI, useTonWallet, useIsConnectionRestored } from "@tonconnect/ui-react";
 import { useTelegram } from "@/lib/telegram";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getTonBalance } from "@/lib/ton-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,75 +19,92 @@ interface WalletConnectorProps {
   onConnect?: (address: string) => void;
 }
 
-const STORAGE_KEY = "ton_wallet_address";
-
 export function WalletConnector({ onConnect }: WalletConnectorProps) {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState("");
   const { toast } = useToast();
-  const { user: tgUser, isReady: tgReady } = useTelegram();
-  
-  // Use react-query for wallet data
-  const { data: walletData, refetch } = useWallet(address);
-  const balance = walletData?.balance ? parseFloat(walletData.balance).toFixed(1) : "0.0";
+  const { user: tgUser } = useTelegram();
+  const [tonConnectUI] = useTonConnectUI();
+  const userFriendlyAddress = useTonAddress();
+  const rawAddress = useTonAddress(false);
+  const wallet = useTonWallet();
+  const connectionRestored = useIsConnectionRestored();
+  const [balance, setBalance] = useState("0.00");
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   useEffect(() => {
-    const savedAddress = localStorage.getItem(STORAGE_KEY);
-    if (savedAddress) {
-      setAddress(savedAddress);
-      setConnected(true);
-      onConnect?.(savedAddress);
+    if (userFriendlyAddress) {
+      onConnect?.(userFriendlyAddress);
+      fetchBalance();
     }
-  }, [onConnect]);
+  }, [userFriendlyAddress, onConnect]);
+
+  useEffect(() => {
+    if (userFriendlyAddress) {
+      const interval = setInterval(fetchBalance, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [userFriendlyAddress]);
+
+  const fetchBalance = async () => {
+    if (!userFriendlyAddress) return;
+    setIsLoadingBalance(true);
+    try {
+      const tonBalance = await getTonBalance(userFriendlyAddress);
+      setBalance(tonBalance);
+    } catch (error) {
+      console.error("Failed to fetch balance:", error);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
 
   const handleConnect = async () => {
     try {
-      const fullAddress = "UQD" + Math.random().toString(36).substring(2, 20).toUpperCase();
-      
-      await apiRequest('POST', '/api/wallets', {
-        address: fullAddress,
-      });
-
-      setAddress(fullAddress);
-      setConnected(true);
-      localStorage.setItem(STORAGE_KEY, fullAddress);
-      onConnect?.(fullAddress);
-      
-      // Refetch wallet data to get fresh balance
-      setTimeout(() => refetch(), 500);
-      
-      toast({
-        title: "Wallet Connected",
-        description: "Your TON wallet has been connected successfully.",
-      });
+      await tonConnectUI.openModal();
     } catch (error) {
       toast({
         title: "Connection Failed",
-        description: "Failed to connect wallet. Please try again.",
+        description: "Failed to open TON Connect modal. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDisconnect = () => {
-    setConnected(false);
-    setAddress("");
-    localStorage.removeItem(STORAGE_KEY);
-    toast({
-      title: "Wallet Disconnected",
-      description: "Your wallet has been disconnected.",
-    });
+  const handleDisconnect = async () => {
+    try {
+      await tonConnectUI.disconnect();
+      toast({
+        title: "Wallet Disconnected",
+        description: "Your wallet has been disconnected.",
+      });
+    } catch (error) {
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect wallet.",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyAddress = () => {
-    navigator.clipboard.writeText(address);
-    toast({
-      title: "Address Copied",
-      description: "Wallet address copied to clipboard.",
-    });
+    if (userFriendlyAddress) {
+      navigator.clipboard.writeText(userFriendlyAddress);
+      toast({
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard.",
+      });
+    }
   };
 
-  if (!connected) {
+  if (!connectionRestored) {
+    return (
+      <Button variant="ghost" disabled className="gap-2">
+        <Wallet className="h-4 w-4 animate-pulse" />
+        Loading...
+      </Button>
+    );
+  }
+
+  if (!userFriendlyAddress) {
     return (
       <Button 
         onClick={handleConnect} 
@@ -127,8 +144,12 @@ export function WalletConnector({ onConnect }: WalletConnectorProps) {
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <div className="flex flex-col items-start">
-                <span className="font-mono text-xs">{address.slice(0, 8)}...{address.slice(-6)}</span>
-                <span className="text-xs text-muted-foreground">{balance} TON</span>
+                <span className="font-mono text-xs">
+                  {userFriendlyAddress.slice(0, 6)}...{userFriendlyAddress.slice(-4)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {isLoadingBalance ? "..." : `${balance} TON`}
+                </span>
               </div>
             </div>
           </Button>
