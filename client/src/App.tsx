@@ -51,11 +51,11 @@ export default function App() {
               <div className="flex h-screen w-full">
                 <AppSidebar />
                 <div className="flex flex-col flex-1 overflow-hidden">
-                  <header className="flex items-center justify-between p-4 border-b gap-4">
+                  <header className="flex items-center justify-between p-3 sm:p-4 border-b gap-2 sm:gap-4">
                     <SidebarTrigger data-testid="button-sidebar-toggle" />
                     <WalletConnector onConnect={setWalletAddress} />
                   </header>
-                  <main className="flex-1 overflow-y-auto p-6">
+                  <main className="flex-1 overflow-y-auto p-4 sm:p-6">
                     <Router />
                   </main>
                 </div>

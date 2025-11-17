@@ -155,23 +155,23 @@ export default function Bills() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
             Bill Splitting
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Split expenses with friends easily
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2" data-testid="button-create-bill">
+            <Button className="gap-2 w-full sm:w-auto" data-testid="button-create-bill">
               <Plus className="h-4 w-4" />
               Create Bill
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Bill</DialogTitle>
               <DialogDescription>
@@ -286,7 +286,7 @@ export default function Bills() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {bills.map((bill) => (
             <BillCard key={bill.id} bill={bill} walletAddress={walletAddress} />
           ))}

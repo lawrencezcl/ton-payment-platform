@@ -42,15 +42,15 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
+        <h1 className="text-2xl sm:text-3xl font-bold font-heading text-foreground" data-testid="text-page-title">
           Dashboard
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Welcome to your TON payment hub
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Balance"
           value={walletLoading ? "..." : balance.toFixed(1)}
@@ -79,9 +79,9 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/send">
-          <Button className="w-full gap-2 h-auto py-4" data-testid="button-quick-send">
+          <Button className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-send">
             <Send className="h-5 w-5" />
             <div className="text-left">
               <div className="font-semibold">Send Payment</div>
@@ -90,7 +90,7 @@ export default function Dashboard() {
           </Button>
         </Link>
         <Link href="/invoices">
-          <Button variant="outline" className="w-full gap-2 h-auto py-4" data-testid="button-quick-invoice">
+          <Button variant="outline" className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-invoice">
             <FileText className="h-5 w-5" />
             <div className="text-left">
               <div className="font-semibold">Create Invoice</div>
@@ -99,7 +99,7 @@ export default function Dashboard() {
           </Button>
         </Link>
         <Link href="/bills">
-          <Button variant="outline" className="w-full gap-2 h-auto py-4" data-testid="button-quick-split">
+          <Button variant="outline" className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-split">
             <Split className="h-5 w-5" />
             <div className="text-left">
               <div className="font-semibold">Split Bill</div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
           </Button>
         </Link>
         <Link href="/merchant">
-          <Button variant="outline" className="w-full gap-2 h-auto py-4" data-testid="button-quick-merchant">
+          <Button variant="outline" className="w-full gap-2 h-auto py-4 min-h-[60px]" data-testid="button-quick-merchant">
             <Plus className="h-5 w-5" />
             <div className="text-left">
               <div className="font-semibold">Merchant Link</div>
